@@ -93,13 +93,13 @@ function command(raw){
   log('Structure created',world.structures.at(-1).name+' added to '+world.name+'.');
   toast('Built '+world.structures.at(-1).name);
  }else if(s.includes('energy')){
-  const m=s.match(/\\d+/);world.energy=Math.max(0,Math.min(100,m?+m[0]:Math.min(100,world.energy+10)));
+  const m=s.match(/\d+/);world.energy=Math.max(0,Math.min(100,m?+m[0]:Math.min(100,world.energy+10)));
   log('Energy index changed','Energy set to '+world.energy+'%.');toast('Energy index updated');
  }else if(s.includes('knowledge')){
-  const m=s.match(/\\d+/);world.knowledge=Math.max(0,Math.min(100,m?+m[0]:world.knowledge+10));
+  const m=s.match(/\d+/);world.knowledge=Math.max(0,Math.min(100,m?+m[0]:world.knowledge+10));
   log('Knowledge index changed','Knowledge set to '+world.knowledge+'%.');toast('Knowledge index updated');
  }else if(s.includes('advance')||s.includes('year')){
-  const m=s.match(/\\d+/),result=simulateYears(m?+m[0]:1);
+  const m=s.match(/\d+/),result=simulateYears(m?+m[0]:1);
   log('Simulation advanced',result.years+' year(s): '+result.startYear+' → '+result.endYear+'. Energy, knowledge, and population changed according to current infrastructure.');
   toast('Simulation advanced '+result.years+' year(s)');
  }else if(s.includes('describe')){
