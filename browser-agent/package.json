@@ -1,0 +1,16 @@
+{
+  "name": "elsewhere-browser-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@browserless.io/bap-ts": "^1.0.0",
+    "express": "^5.1.0"
+  }
+}
