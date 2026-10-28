@@ -1,8 +1,8 @@
 # ELSEWHERE
 
-**An interface for imagination.**
+**An interface for imagination, world simulation, and embodied AI.**
 
-ELSEWHERE is an interactive world-building prototype for creating imagined environments, entering a small 3D simulation, and experimenting with the systems that shape a civilization.
+ELSEWHERE is an interactive world engine for creating imagined environments, developing civilizations, and running embodied agents inside the same worlds. World-building remains the central experience; robotics simulation is integrated as another way to use the environments, not a separate product.
 
 ## Current prototype
 
@@ -12,7 +12,7 @@ ELSEWHERE is an interactive world-building prototype for creating imagined envir
 - Adjustable energy, knowledge, and population indicators (illustrative, not scientific predictions).
 - Add and remove structures.
 - Save and restore a world in the current browser; import/export portable JSON.
-- Responsive interface and local-only world guide fallback.
+- Responsive interface and local-only world guide fallback.\n- Built-in embodied simulation lab with a virtual rover and inspect, delivery, and survey task demonstrations that run in the active world.
 
 ## Run locally
 
@@ -40,9 +40,13 @@ ELSEWHERE's primary product is an interactive world-building and simulation envi
 4. **Intelligent world-building:** later connect a server-side AI to interpret richer instructions and help users design and evolve their worlds.
 5. **Persistent and shared worlds:** later add secure cloud saves and multi-user collaboration.
 
-### Optional future extension: robotics simulation
+### One world engine, multiple kinds of simulation
 
-A separate, optional robotics/simulation extension may eventually let researchers use suitable ELSEWHERE environments to train and evaluate robots in virtual settings. This is inspired by the broader idea of AI world models and simulated environments, including work associated with World Labs and Fei-Fei Li. It is **not the core product** and should not distract from building the world-creation and civilization-simulation experience first. When pursued, it should be a modular extension with explicit interfaces for simulated objects, actions, observations, physics, and training integrations rather than tightly coupling robotics code to the main application.
+Robotics and embodied AI are part of ELSEWHERE's long-term product vision, alongside world creation and civilization simulation. They are not a separate product or an afterthought. The same generated environment should be useful both as a world people can explore and as a place where virtual agents can perceive, navigate, manipulate objects, and complete tasks.
+
+The current prototype includes a **basic embodied-simulation lab**: a virtual rover can run deterministic inspect, delivery, and survey routes through structures in the active world. This is an initial demonstration of the product direction, not machine-learning training, validated physics, or a claim that a real robot has been trained.
+
+The long-term goal is to evolve this into a simulation foundation for robotics research: structured world state, collision-aware navigation, physics and sensor models, configurable agent bodies, repeatable scenarios, observation/action interfaces, task scoring, and eventual integrations with training frameworks. The ambition is informed by spatial-intelligence and world-model research associated with World Labs and Fei-Fei Li, while ELSEWHERE retains its own focus: let people create worlds, then use those same worlds to explore ideas, simulate systems, and develop intelligent agents.
 
 ## AI and future milestones
 
@@ -52,7 +56,7 @@ Never put API keys in frontend code or commit secrets to GitHub.
 
 ## Scope and honesty
 
-This is an early interactive prototype, not a finished virtual-reality platform or a scientifically validated civilization simulator. It does not yet provide multi-user worlds, real-world physics, VR/AR support, or persistent cloud accounts. The energy and knowledge indicators are illustrative, not scientific predictions.
+This is an early interactive prototype, not a finished virtual-reality platform or a scientifically validated civilization simulator. It does not yet provide multi-user worlds, validated real-world physics, learned robot policies, real-robot deployment, VR/AR support, or persistent cloud accounts. The energy and knowledge indicators are illustrative, not scientific predictions.
 
 ## Project
 
