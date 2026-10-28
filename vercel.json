@@ -20,5 +20,6 @@
         }
       ]
     }
-  ]
+  ],
+  "outputDirectory": "."
 }
