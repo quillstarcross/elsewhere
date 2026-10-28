@@ -94,8 +94,7 @@ jobs:
             await page.locator('#runCommand').click();
             check('Build command adds a structure', await page.locator('#structureList .structure').count() >= 6);
 
-            await page.locator('#energyRange').fill('90');
-            await page.locator('#energyRange').dispatchEvent('change');
+            await page.locator('#energyRange').evaluate(el => { el.value = '90'; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); });
             check('Energy control updates state', (await page.locator('#energyValue').innerText()).trim() === '90%');
 
             await page.locator('#saveBtn').click();
