@@ -13,30 +13,30 @@ ELSEWHERE is an interactive world-building prototype for creating imagined envir
 - Add and remove structures.
 - Save and restore a world in the current browser; import/export portable JSON.
 - Responsive interface and local-only world guide fallback.
-- Optional Cloudflare Worker backend for AI world-guide responses.
 
 ## Run locally
 
-Requirements: Node.js 20 or newer.
+This is a static HTML application. You can open `index.html` in a modern browser, though the 3D module import may work best through a local web server.
+
+For example, with Node.js installed:
 
 ```bash
-npm install
-npm run dev
+npx serve .
 ```
-
-Create a production build with `npm run build` and preview it with `npm run preview`.
 
 ## Deploy the frontend
 
-Import this repository into Vercel and deploy with the default Vite settings. The build command is `npm run build` and the output directory is `dist`.
+Import this repository into Vercel. It is a static site with no build command; use the repository root as the output directory. The app imports Three.js from a public CDN.
 
-## Optional AI guide
+## AI and future milestones
 
-The app works without an AI provider, but the world guide is local-only. For open-ended AI responses, deploy the worker in `worker/` using the instructions in `CLOUDFLARE_DEPLOY.md`, configure the provider secret on the server, and set `VITE_AI_ENDPOINT` to the deployed endpoint in Vercel. Never place API keys in frontend code or commit them to GitHub.
+The current world guide runs locally and summarizes the active simulation. It does not call a live AI model. Future milestones include a secure server-side AI integration, cloud persistence, multi-user worlds, richer simulation systems, and eventual AR/VR exploration.
+
+Never put API keys in frontend code or commit secrets to GitHub.
 
 ## Scope and honesty
 
-This is an early interactive prototype, not a finished virtual-reality platform or a scientifically validated civilization simulator. It does not yet provide multi-user worlds, real-world physics, VR/AR support, or persistent cloud accounts. Those are future directions.
+This is an early interactive prototype, not a finished virtual-reality platform or a scientifically validated civilization simulator. It does not yet provide multi-user worlds, real-world physics, VR/AR support, or persistent cloud accounts. The energy and knowledge indicators are illustrative, not scientific predictions.
 
 ## Project
 
