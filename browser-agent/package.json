@@ -10,7 +10,7 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@browserless.io/bap-ts": "^1.0.0",
-    "express": "^5.1.0"
+    "@browserless.io/bap-ts": "2.1.0",
+    "express": "5.1.0"
   }
 }
