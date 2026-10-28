@@ -1,6 +1,8 @@
 name: Playwright Browser Automation
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       target_url:
