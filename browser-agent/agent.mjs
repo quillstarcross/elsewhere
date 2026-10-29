@@ -122,7 +122,9 @@ export function createAgentRouter({ authorized, getSession, applyAction }) {
           const args = parseArgs(call?.function?.arguments);
           let result;
           try {
-            if (name === "search_web") {\n              result = await searchWeb(args.query);\n            } else if (name === "inspect_page") {
+            if (name === "search_web") {
+              result = await searchWeb(args.query);
+            } else if (name === "inspect_page") {
               result = await applyAction(session.page, { action: "inspect" });
             } else if (name === "navigate") {
               result = await applyAction(session.page, { action: "navigate", url: args.url });
