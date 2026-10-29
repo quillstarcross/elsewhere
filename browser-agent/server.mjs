@@ -131,7 +131,11 @@ app.get("/api/status", authorized, (_req, res) => res.json({
   browser: browser ? "ready" : browserError ? "error" : "starting",
   engine: "Lightpanda",
   capabilities: ["navigate", "inspect", "click", "fill", "select", "workflow", "natural-language AI agent"],
-  aiConfigured: Boolean(process.env.AI_BASE_URL && process.env.AI_API_KEY && process.env.AI_MODEL),
+  aiConfigured: Boolean(
+    (process.env.AI_BASE_URL || process.env.GEMINI_API_KEY) &&
+    (process.env.AI_API_KEY || process.env.GEMINI_API_KEY) &&
+    (process.env.AI_MODEL || process.env.GEMINI_API_KEY)
+  ),
   webSearchConfigured: Boolean(process.env.TAVILY_API_KEY),
   limitations: ["headless only", "no visual login handoff", "partial browser API compatibility"]
 }));

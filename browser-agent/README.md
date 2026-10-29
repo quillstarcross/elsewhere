@@ -10,7 +10,7 @@ A small, self-hosted headless browser automation service. This replaces the Brow
 - Execute short, ordered workflows through `POST /api/session/:id/workflow`.
 - Protect the API with a server-side `AGENT_ACCESS_KEY`.
 
-The service includes an optional natural-language agent at `POST /api/agent/run`. It calls a configurable OpenAI-compatible chat-completions endpoint, gives the model browser tools plus optional Tavily web search, runs bounded actions, and returns a report with an action log. With `TAVILY_API_KEY` configured, the agent can search the public web and then navigate to sources to inspect them. The model API key stays server-side. You must configure a model provider; Lightpanda itself is not an AI model.
+The service includes an optional natural-language agent at `POST /api/agent/run`. It calls a configurable OpenAI-compatible chat-completions endpoint, gives the model browser tools plus Tavily web search, runs bounded actions, and returns a report with an action log. Gemini is supported through Google's OpenAI-compatible endpoint. The model API key stays server-side. Lightpanda itself is a browser, not an AI model.
 
 ## Important limits
 
@@ -84,7 +84,7 @@ content-type: application/json
 }
 ```
 
-The agent requires an existing browser session. To enable web research, add `TAVILY_API_KEY` as a Render environment variable. It cannot bypass authentication, CAPTCHAs, or site restrictions. It will not fill password fields and is instructed to stop before purchases, payments, sending, publishing, deletion, bookings, and final submissions. Review page state before taking consequential actions yourself.
+The agent requires an existing browser session. To enable web research, add `TAVILY_API_KEY` as a Render environment variable. The agent uses Tavily's Search API and opens relevant public results in Lightpanda for verification. It cannot bypass authentication, CAPTCHAs, or site restrictions. It will not fill password fields and is instructed to stop before purchases, payments, sending, publishing, deletion, bookings, and final submissions. Review page state before taking consequential actions yourself.
 
 ## Local development
 

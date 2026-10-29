@@ -6,9 +6,10 @@ const MAX_GOAL_LENGTH = 3000;
 const RISKY_ACTION_LABEL = /\b(pay|purchase|buy now|place order|delete|remove account|send message|send email|publish|post now|book now|confirm booking|transfer|withdraw|checkout|subscribe|cancel subscription|submit application|final submit|accept offer)\b/i;
 
 function modelConfig() {
-  const base = (process.env.AI_BASE_URL || "").replace(/\/+$/, "");
-  const key = process.env.AI_API_KEY || "";
-  const model = process.env.AI_MODEL || "";
+  const geminiKey = process.env.GEMINI_API_KEY || "";
+  const base = (process.env.AI_BASE_URL || (geminiKey ? "https://generativelanguage.googleapis.com/v1beta/openai" : "")).replace(/\/+$/, "");
+  const key = process.env.AI_API_KEY || geminiKey;
+  const model = process.env.AI_MODEL || (geminiKey ? "gemini-3.8-flash" : "");
   return { base, key, model };
 }
 
@@ -60,8 +61,8 @@ async function searchWeb(query) {
   const endpoint = process.env.TAVILY_API_URL || "https://api.tavily.com/search";
   const response = await fetch(endpoint, {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ api_key: key, query: q, search_depth: "basic", max_results: 6, include_answer: false, include_raw_content: false }),
+    headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+    body: JSON.stringify({ query: q, search_depth: "basic", max_results: 6, include_answer: false, include_raw_content: false }),
     signal: AbortSignal.timeout(20000)
   });
   const data = await response.json().catch(() => ({}));
