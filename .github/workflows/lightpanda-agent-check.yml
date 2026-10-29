@@ -29,11 +29,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: browser-agent/package.json
       - name: Install dependencies and Lightpanda binary
         run: |
           npm install
-          npx @lightpanda/browser install
+          mkdir -p bin
+          curl -fsSL --retry 3 https://github.com/lightpanda-io/browser/releases/download/nightly/lightpanda-x86_64-linux -o bin/lightpanda
+          chmod +x bin/lightpanda
+          ./bin/lightpanda version
       - name: Check server syntax
         run: npm run check
