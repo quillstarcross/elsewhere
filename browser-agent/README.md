@@ -10,7 +10,7 @@ A small, self-hosted headless browser automation service. This replaces the Brow
 - Execute short, ordered workflows through `POST /api/session/:id/workflow`.
 - Protect the API with a server-side `AGENT_ACCESS_KEY`.
 
-This is a browser-control service, not a complete natural-language AI agent by itself. A compatible AI orchestrator can call its API, or a workflow can be sent as explicit steps.
+The service includes an optional natural-language agent at `POST /api/agent/run`. It calls a configurable OpenAI-compatible chat-completions endpoint, gives the model browser tools, runs bounded actions, and returns a report with an action log. The model API key stays server-side. You must configure a model provider; Lightpanda itself is not an AI model.
 
 ## Important limits
 
@@ -34,12 +34,12 @@ The build downloads the official open-source Lightpanda binary directly and chec
 All `/api/*` endpoints require the `x-agent-key` header.
 
 - `GET /health`: public health status.
-- `GET /api/status`: protected capabilities and browser status.
+- `GET /api/status`: protected capabilities, browser status, and whether AI configuration is present.
 - `POST /api/session` with `{"url":"https://example.com"}`: create a headless session.
 - `GET /api/session/:id`: inspect title, URL, text, and links.
 - `POST /api/session/:id/action`: run one action.
 - `POST /api/session/:id/workflow`: run 1–20 ordered steps.
-- `DELETE /api/session/:id`: close a session.
+- `DELETE /api/session/:id`: close a session.\n- `POST /api/agent/run` with `{"sessionId":"...","goal":"Find and summarize the public contact information on this page."}`: run the natural-language agent against an existing session. It returns `summary`, `actions`, and `rounds`.
 
 Example action body:
 
@@ -58,7 +58,33 @@ Example workflow body:
 }
 ```
 
-Supported actions: `navigate`, `click`, `fill`, `select`, and `inspect`. Workflows stop on the first failed step. Page text and link output are bounded to avoid unbounded responses.
+Supported browser actions: `navigate`, `click`, `fill`, `select`, and `inspect`. Workflows stop on the first failed step. The AI agent is limited to 8 model/tool rounds per request and uses bounded page output. It is designed for public-page research and routine navigation, not as an unrestricted computer-use agent. It blocks password fields and attempts to stop before consequential actions; this is a safety layer, not a guarantee that every site-specific action will be classified correctly.
+
+
+## Configure the AI agent
+
+In Render, open the `elsewhere-browser-agent` service and add these environment variables:
+
+- `AI_BASE_URL`: the base URL of an OpenAI-compatible Chat Completions API, without the final `/chat/completions` path.
+- `AI_API_KEY`: the model provider's API key. Keep it in Render environment variables only.
+- `AI_MODEL`: the exact model identifier supported by that provider.
+
+Example base URL shapes include `https://api.openai.com/v1` or a provider's documented OpenAI-compatible endpoint. Choose a model/provider with a free tier if available in your region, but check its current limits and billing terms; free access and quotas can change. Do not put model keys in the dashboard or in GitHub files. After saving environment variables, redeploy/restart the service.
+
+Then open the dashboard, start a session on a public page, enter a goal in **03 / AI agent**, and select **Run AI agent**. Or call the endpoint directly:
+
+```http
+POST /api/agent/run
+x-agent-key: YOUR_AGENT_ACCESS_KEY
+content-type: application/json
+
+{
+  "sessionId": "ID_FROM_POST_API_SESSION",
+  "goal": "Find the public contact information on this page and summarize it."
+}
+```
+
+The agent requires an existing browser session. It cannot bypass authentication, CAPTCHAs, or site restrictions. It will not fill password fields and is instructed to stop before purchases, payments, sending, publishing, deletion, bookings, and final submissions. Review page state before taking consequential actions yourself.
 
 ## Local development
 
