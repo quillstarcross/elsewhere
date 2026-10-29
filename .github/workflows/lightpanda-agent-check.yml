@@ -1,0 +1,39 @@
+name: Lightpanda Agent Check
+
+on:
+  push:
+    branches:
+      - main
+      - feature/lightpanda-hybrid-agent
+    paths:
+      - "browser-agent/**"
+      - "render.yaml"
+      - ".github/workflows/lightpanda-agent-check.yml"
+  pull_request:
+    paths:
+      - "browser-agent/**"
+      - "render.yaml"
+      - ".github/workflows/lightpanda-agent-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: browser-agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: browser-agent/package.json
+      - name: Install dependencies and Lightpanda binary
+        run: |
+          npm install
+          npx @lightpanda/browser install
+      - name: Check server syntax
+        run: npm run check
