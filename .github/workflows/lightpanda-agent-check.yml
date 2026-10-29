@@ -6,6 +6,7 @@ on:
       - main
       - feature/lightpanda-hybrid-agent
       - feature/ai-agent-orchestrator
+      - feature/agent-web-search
     paths:
       - "browser-agent/**"
       - "render.yaml"
