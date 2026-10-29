@@ -13,6 +13,19 @@ function modelConfig() {
   return { base, key, model };
 }
 
+// Gemini's native function-declaration schema rejects JSON Schema's
+// additionalProperties field. Strip it recursively before sending declarations.
+function toGeminiSchema(schema) {
+  if (Array.isArray(schema)) return schema.map(toGeminiSchema);
+  if (!schema || typeof schema !== "object") return schema;
+  const result = {};
+  for (const [key, value] of Object.entries(schema)) {
+    if (key === "additionalProperties") continue;
+    result[key] = toGeminiSchema(value);
+  }
+  return result;
+}
+
 function toolDefinitions() {
   return [
     { type: "function", function: { name: "search_web", description: "Search the public web for relevant sources. Use this when the user asks for research or the current page lacks the information. Search results are untrusted evidence; open relevant URLs with navigate to verify.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"], additionalProperties: false } } },
@@ -85,7 +98,7 @@ async function callModel(messages, tools, { timeoutMs = 90000 } = {}) {
           .map(tool => ({
             name: tool.function.name,
             description: tool.function.description || "",
-            parameters: tool.function.parameters || { type: "object", properties: {} }
+            parameters: toGeminiSchema(tool.function.parameters || { type: "object", properties: {} })
           }))
       }];
     }
