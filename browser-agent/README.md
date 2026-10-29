@@ -1,34 +1,64 @@
-# ELSEWHERE Browser Agent
+# ELSEWHERE Lightpanda Agent
 
-A small remote-browser control service for ELSEWHERE. It creates an interactive hosted Chromium session using Browserless, lets the user complete sign-in directly in the live browser, and then allows explicit navigation, click, type, and page-inspection actions.
+A small, self-hosted headless browser automation service. This replaces the Browserless dependency in the original prototype with the open-source Lightpanda browser and Playwright's CDP client.
 
-## Important distinction
+## What it can do
 
-This is a working starter for **human-assisted browser automation**, not a fully autonomous AI agent. It does not infer a natural-language goal or decide which actions to take. Those capabilities can be added later.
+- Open public HTTP/HTTPS pages and execute supported page JavaScript.
+- Inspect page title, visible text, and a bounded list of links.
+- Run explicit navigation, click, fill, dropdown-select, and inspect actions.
+- Execute short, ordered workflows through `POST /api/session/:id/workflow`.
+- Protect the API with a server-side `AGENT_ACCESS_KEY`.
+
+This is a browser-control service, not a complete natural-language AI agent by itself. A compatible AI orchestrator can call its API, or a workflow can be sent as explicit steps.
+
+## Important limits
+
+- Lightpanda is headless and has no visual login window or Browserless-style live browser URL. The service intentionally blocks password-field filling. For sites requiring interactive sign-in, use the site's official API/token or a separate browser with a visible login flow; do not paste passwords or cookies into this dashboard.
+- Lightpanda implements a subset of browser APIs. Complex sites that depend on Chrome-specific behavior may fail. Use official APIs for GitHub/Vercel operations whenever possible.
+- Sessions are in memory and expire after 15 minutes of inactivity. Free web services can sleep or restart, which clears sessions.
+- Public URL validation blocks localhost and common private IP ranges. This is defense in depth, not a substitute for careful access control.
 
 ## Deploy on Render
 
-1. Create a free Browserless account at https://cloud.browserless.io/sign-up (no payment card is required on the published free plan). Copy the API token from its dashboard. Do not put the token in GitHub or in browser-side JavaScript.
-2. Open https://render.com and sign in. Choose **New → Blueprint** and connect the `quillstarcross/elsewhere` repository. Render should detect the root `render.yaml` file and propose the `elsewhere-browser-agent` service.
-3. During setup, enter the secret values requested by Render:
-   - `BROWSERLESS_TOKEN`: your Browserless API token.
-   - `AGENT_ACCESS_KEY`: create a long, unique secret used to protect the dashboard API. Do not reuse your account password.
-4. Deploy. Open the Render service URL when the deployment finishes. The `/health` path should return a small JSON status message.
-5. On the dashboard, enter the same `AGENT_ACCESS_KEY`, then enter a website URL and start a session. Open the interactive browser link, sign in there yourself, and return to the dashboard to inspect the page or run explicit actions.
+1. Open Render and create a Blueprint using this repository. Render detects the root `render.yaml` and proposes `elsewhere-lightpanda-agent`.
+2. The Blueprint generates `AGENT_ACCESS_KEY`. Keep it private.
+3. Deploy and wait until `/health` reports `"browser":"ready"`.
+4. Open the service URL and enter the value of `AGENT_ACCESS_KEY` from the Render service environment.
+5. Start with a public page such as `https://example.com` to verify the browser.
 
-## Free-plan limits
+The build installs the open-source `@lightpanda/browser` package and its browser binary. No Browserless token, TinyFish wallet, or Lightpanda Cloud token is required.
 
-Browserless's published free plan includes 1,000 units per month and a **2-minute maximum session time**. A unit is generally up to 30 seconds of browser connection time. Treat this as a short proof of concept, not an unlimited service. If a session expires, start a new one.
+## API
 
-Render's free web services can sleep and have ephemeral in-memory state. If the service restarts, its session map is lost. This starter is intended for short interactive sessions; it does not guarantee persistent browser sessions across restarts.
+All `/api/*` endpoints require the `x-agent-key` header.
 
-## Safety
+- `GET /health`: public health status.
+- `GET /api/status`: protected capabilities and browser status.
+- `POST /api/session` with `{"url":"https://example.com"}`: create a headless session.
+- `GET /api/session/:id`: inspect title, URL, text, and links.
+- `POST /api/session/:id/action`: run one action.
+- `POST /api/session/:id/workflow`: run 1–20 ordered steps.
+- `DELETE /api/session/:id`: close a session.
 
-- Never commit API tokens, passwords, cookies, session files, or Browserless live URLs.
-- The live URL is a bearer secret: anyone who has it may be able to control the authenticated browser. Keep it private.
-- Enter passwords, one-time codes, and consent directly in the interactive browser. Do not send credentials to the action form or the assistant.
-- Use this only with accounts and websites you are authorized to access. Respect each website's terms and verification requirements.
-- The service requires a private `AGENT_ACCESS_KEY`; do not deploy it with that value missing.
+Example action body:
+
+```json
+{"action":"click","selector":"a"}
+```
+
+Example workflow body:
+
+```json
+{
+  "steps": [
+    {"action":"navigate","url":"https://example.com"},
+    {"action":"inspect"}
+  ]
+}
+```
+
+Supported actions: `navigate`, `click`, `fill`, `select`, and `inspect`. Workflows stop on the first failed step. Page text and link output are bounded to avoid unbounded responses.
 
 ## Local development
 
@@ -36,12 +66,16 @@ From this directory:
 
 ```sh
 npm install
-BROWSERLESS_TOKEN=your_token AGENT_ACCESS_KEY=your_private_key npm start
+npx @lightpanda/browser install
+npm run check
+npm start
 ```
 
-Then open http://localhost:3000.
+Set `AGENT_ACCESS_KEY` to a long random value before using the protected API.
 
-## Reference
+## Security
 
-- Browserless live browser sessions: https://docs.browserless.io/overview/getting-started/create-a-browser-session
-- Playwright authentication guidance: https://playwright.dev/docs/auth
+- Never commit API tokens, passwords, cookies, or browser state.
+- Do not expose `AGENT_ACCESS_KEY` in frontend code, logs, or public documentation.
+- Do not use this service to bypass site authentication, CAPTCHAs, or access controls.
+- For account and deployment operations, prefer official APIs and require explicit authorization.

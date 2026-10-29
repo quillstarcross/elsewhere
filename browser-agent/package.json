@@ -1,16 +1,17 @@
 {
-  "name": "elsewhere-browser-agent",
-  "version": "1.0.0",
+  "name": "elsewhere-lightpanda-agent",
+  "version": "2.0.1",
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "check": "node --check server.mjs"
   },
   "engines": {
     "node": ">=22"
   },
   "dependencies": {
-    "@browserless.io/bap-ts": "2.1.0",
-    "express": "5.1.0"
+    "express": "5.1.0",
+    "playwright-core": "1.56.1"
   }
 }
