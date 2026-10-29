@@ -38,3 +38,31 @@ jobs:
           ./bin/lightpanda version
       - name: Check server syntax
         run: npm run check
+      - name: Smoke test Lightpanda CDP
+        run: |
+          ./bin/lightpanda serve --host 127.0.0.1 --port 9222 > /tmp/lightpanda.log 2>&1 &
+          LPD_PID=$!
+          trap 'kill "$LPD_PID" 2>/dev/null || true' EXIT
+          node --input-type=module <<'NODE'
+          import { chromium } from "playwright-core";
+          let browser;
+          let lastError;
+          for (let i = 0; i < 20; i++) {
+            try {
+              browser = await chromium.connectOverCDP({ endpointURL: "ws://127.0.0.1:9222", timeout: 1000 });
+              break;
+            } catch (error) {
+              lastError = error;
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+          }
+          if (!browser) throw lastError || new Error("Lightpanda CDP did not start");
+          const context = await browser.newContext();
+          const page = await context.newPage();
+          await page.goto("https://example.com", { waitUntil: "domcontentloaded", timeout: 20000 });
+          const title = await page.title();
+          if (!title.includes("Example")) throw new Error("Unexpected page title: " + title);
+          console.log("Lightpanda CDP smoke test passed:", title);
+          await context.close();
+          await browser.close();
+          NODE
