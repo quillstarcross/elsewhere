@@ -32,10 +32,17 @@ async function callModel(messages, tools) {
     throw error;
   }
   const endpoint = base.endsWith("/chat/completions") ? base : base + "/chat/completions";
+  // Gemini's OpenAI-compatible endpoint expects tools/tool_choice only when
+  // tool definitions are present. The connection test intentionally sends no tools.
+  const payload = { model, messages, temperature: 0.2, max_tokens: 1400 };
+  if (Array.isArray(tools) && tools.length > 0) {
+    payload.tools = tools;
+    payload.tool_choice = "auto";
+  }
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
-    body: JSON.stringify({ model, messages, tools, tool_choice: "auto", temperature: 0.2, max_tokens: 1400 }),
+    body: JSON.stringify(payload),
     signal: AbortSignal.timeout(45000)
   });
   const data = await response.json().catch(() => ({}));
