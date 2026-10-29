@@ -1,18 +1,14 @@
 services:
   - type: web
-    name: elsewhere-browser-agent
+    name: elsewhere-lightpanda-agent
     runtime: node
     plan: free
     rootDir: browser-agent
-    buildCommand: npm install
+    buildCommand: npm install && npx @lightpanda/browser install
     startCommand: npm start
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
         value: 22
-      - key: BROWSERLESS_TOKEN
-        sync: false
       - key: AGENT_ACCESS_KEY
         generateValue: true
-      - key: BROWSERLESS_ENDPOINT
-        value: wss://production-sfo.browserless.io/chromium/bql
