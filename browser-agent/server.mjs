@@ -1,12 +1,17 @@
 import express from "express";
 import crypto from "node:crypto";
 import net from "node:net";
-import { lightpanda } from "@lightpanda/browser";
+import { spawn } from "node:child_process";
+import { setTimeout as delay } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { chromium } from "playwright-core";
 
 const app = express();
+const here = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 3000);
 const accessKey = process.env.AGENT_ACCESS_KEY;
+const binaryPath = process.env.LIGHTPANDA_BIN || path.join(here, "bin", "lightpanda");
 const sessions = new Map();
 const MAX_SESSIONS = 3;
 const SESSION_TTL_MS = 15 * 60 * 1000;
@@ -17,7 +22,7 @@ let browserError = null;
 
 app.disable("x-powered-by");
 app.use(express.json({ limit: "32kb" }));
-app.use(express.static(new URL("./public/", import.meta.url).pathname));
+app.use(express.static(path.join(here, "public")));
 
 function authorized(req, res, next) {
   if (!accessKey) return res.status(503).json({ error: "Service setup incomplete: AGENT_ACCESS_KEY is not configured." });
@@ -44,7 +49,7 @@ function validPublicHttpUrl(value) {
       if (a === 172 && b >= 16 && b <= 31) return false;
       if (a === 192 && b === 168) return false;
     }
-    if (net.isIP(host) === 6 && (host === "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:"))) return false;
+    if (net.isIP(host) === 6 && (host === "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:") || host.startsWith("::ffff:127.") || host.startsWith("::ffff:10.") || host.startsWith("::ffff:192.168."))) return false;
     return true;
   } catch {
     return false;
@@ -202,9 +207,26 @@ const server = app.listen(port, "0.0.0.0", () => console.log(`ELSEWHERE Lightpan
 
 async function startBrowser() {
   try {
-    browserProcess = await lightpanda.serve({ host: "127.0.0.1", port: 9222 });
-    browser = await chromium.connectOverCDP({ endpointURL: "ws://127.0.0.1:9222" });
-    console.log("Lightpanda CDP browser ready.");
+    browserProcess = spawn(binaryPath, ["serve", "--host", "127.0.0.1", "--port", "9222"], { stdio: ["ignore", "pipe", "pipe"] });
+    browserProcess.stdout.on("data", chunk => console.log("[lightpanda]", String(chunk).trim()));
+    browserProcess.stderr.on("data", chunk => console.log("[lightpanda]", String(chunk).trim()));
+    browserProcess.on("error", error => {
+      browserError = error;
+      console.error("Lightpanda process error:", error?.message || error);
+    });
+    let lastError;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      if (browserProcess.exitCode !== null) throw new Error("Lightpanda exited before its CDP server became ready.");
+      try {
+        browser = await chromium.connectOverCDP({ endpointURL: "ws://127.0.0.1:9222", timeout: 1500 });
+        console.log("Lightpanda CDP browser ready.");
+        return;
+      } catch (error) {
+        lastError = error;
+        await delay(500);
+      }
+    }
+    throw lastError || new Error("Timed out waiting for Lightpanda CDP.");
   } catch (error) {
     browserError = error;
     console.error("Lightpanda startup failed:", error?.message || error);
