@@ -130,7 +130,7 @@ app.get("/api/status", authorized, (_req, res) => res.json({
   service: "ELSEWHERE Lightpanda Agent",
   browser: browser ? "ready" : browserError ? "error" : "starting",
   engine: "Lightpanda",
-  capabilities: ["navigate", "inspect", "click", "fill", "select", "workflow", "natural-language AI agent"],
+  capabilities: ["navigate", "inspect", "click", "fill", "select", "workflow", "natural-language AI agent", "AI and search connection diagnostics"],
   aiConfigured: Boolean(
     (process.env.AI_BASE_URL || process.env.GEMINI_API_KEY) &&
     (process.env.AI_API_KEY || process.env.GEMINI_API_KEY) &&
