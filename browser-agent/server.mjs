@@ -130,7 +130,8 @@ app.get("/api/status", authorized, (_req, res) => res.json({
   service: "ELSEWHERE Lightpanda Agent",
   browser: browser ? "ready" : browserError ? "error" : "starting",
   engine: "Lightpanda",
-  capabilities: ["navigate", "inspect", "click", "fill", "select", "workflow"],
+  capabilities: ["navigate", "inspect", "click", "fill", "select", "workflow", "natural-language AI agent"],
+  aiConfigured: Boolean(process.env.AI_BASE_URL && process.env.AI_API_KEY && process.env.AI_MODEL),
   limitations: ["headless only", "no visual login handoff", "partial browser API compatibility"]
 }));
 
