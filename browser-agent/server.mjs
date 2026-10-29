@@ -6,6 +6,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { chromium } from "playwright-core";
+import { createAgentRouter } from "./agent.mjs";
 
 const app = express();
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -202,6 +203,8 @@ app.delete("/api/session/:id", authorized, async (req, res) => {
   }
   res.json({ ok: true, message: "Session closed." });
 });
+
+app.use("/api/agent", createAgentRouter({ authorized, getSession, applyAction }));
 
 const server = app.listen(port, "0.0.0.0", () => console.log(`ELSEWHERE Lightpanda Agent listening on ${port}`));
 
