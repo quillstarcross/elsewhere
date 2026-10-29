@@ -24,37 +24,122 @@ function toolDefinitions() {
   ];
 }
 
+function geminiContents(messages) {
+  const toolNames = new Map();
+  for (const message of messages) {
+    for (const call of message.tool_calls || []) {
+      if (call?.id && call?.function?.name) toolNames.set(call.id, call.function.name);
+    }
+  }
+  const contents = [];
+  let systemInstruction;
+  for (const message of messages) {
+    if (message.role === "system") {
+      systemInstruction = { parts: [{ text: String(message.content || "") }] };
+    } else if (message.role === "user") {
+      contents.push({ role: "user", parts: [{ text: String(message.content || "") }] });
+    } else if (message.role === "assistant") {
+      const parts = [];
+      if (message.content) parts.push({ text: String(message.content) });
+      for (const call of message.tool_calls || []) {
+        let args = {};
+        try { args = JSON.parse(call.function?.arguments || "{}"); } catch {}
+        parts.push({ functionCall: { name: call.function.name, args } });
+      }
+      if (parts.length) contents.push({ role: "model", parts });
+    } else if (message.role === "tool") {
+      let response = {};
+      try { response = JSON.parse(message.content || "{}"); } catch { response = { result: String(message.content || "") }; }
+      const name = toolNames.get(message.tool_call_id);
+      if (name) contents.push({ role: "user", parts: [{ functionResponse: { name, response: { result: response } } }] });
+    }
+  }
+  return { contents, systemInstruction };
+}
+
 async function callModel(messages, tools, { timeoutMs = 90000 } = {}) {
   const { base, key, model } = modelConfig();
   if (!base || !key || !model) {
-    const error = new Error("AI agent is not configured. Set AI_BASE_URL, AI_API_KEY, and AI_MODEL in the service environment.");
+    const error = new Error("AI agent is not configured. Set GEMINI_API_KEY (or AI_BASE_URL, AI_API_KEY, and AI_MODEL) in the service environment.");
     error.status = 503;
     throw error;
   }
-  const endpoint = base.endsWith("/chat/completions") ? base : base + "/chat/completions";
-  // Gemini's OpenAI-compatible endpoint expects tools/tool_choice only when
-  // tool definitions are present. The connection test intentionally sends no tools.
-  // Gemini 3 defaults to high reasoning, which can delay even simple requests.
-  // Use low reasoning for faster agent turns while preserving compatibility with other OpenAI-style providers.
-  const isGemini = base.includes("generativelanguage.googleapis.com");
-  const payload = { model, messages, max_tokens: 1400, ...(isGemini ? { reasoning_effort: "low" } : { temperature: 0.2 }) };
-  if (Array.isArray(tools) && tools.length > 0) {
-    payload.tools = tools;
-    payload.tool_choice = "auto";
+
+  const isGoogleGemini = base.includes("generativelanguage.googleapis.com");
+  const endpoint = isGoogleGemini
+    ? `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`
+    : (base.endsWith("/chat/completions") ? base : base + "/chat/completions");
+
+  let payload;
+  let headers = { "content-type": "application/json" };
+  if (isGoogleGemini) {
+    const converted = geminiContents(messages);
+    payload = {
+      ...converted,
+      generationConfig: { maxOutputTokens: 1400, thinkingConfig: { thinkingLevel: "LOW" } }
+    };
+    if (Array.isArray(tools) && tools.length > 0) {
+      payload.tools = [{
+        functionDeclarations: tools
+          .filter(tool => tool?.type === "function" && tool.function?.name)
+          .map(tool => ({
+            name: tool.function.name,
+            description: tool.function.description || "",
+            parameters: tool.function.parameters || { type: "object", properties: {} }
+          }))
+      }];
+    }
+    headers["x-goog-api-key"] = key;
+  } else {
+    payload = { model, messages, max_tokens: 1400, temperature: 0.2 };
+    if (Array.isArray(tools) && tools.length > 0) {
+      payload.tools = tools;
+      payload.tool_choice = "auto";
+    }
+    headers.authorization = `Bearer ${key}`;
   }
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(timeoutMs)
-  });
+
+  let response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+  } catch (error) {
+    if (error?.name === "TimeoutError" || error?.name === "AbortError") {
+      throw new Error(`Gemini request timed out after ${Math.round(timeoutMs / 1000)} seconds. Check Google API availability, model access, and the Render deployment.`);
+    }
+    throw error;
+  }
+
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const error = new Error(`AI provider returned HTTP ${response.status}: ${String(data?.error?.message || data?.message || "request failed").slice(0, 300)}`);
+    const detail = String(data?.error?.message || data?.message || "request failed").slice(0, 300);
+    const error = new Error(`AI provider returned HTTP ${response.status}: ${detail}`);
     error.status = 502;
     throw error;
   }
-  const message = data?.choices?.[0]?.message;
+
+  let message;
+  if (isGoogleGemini) {
+    const candidate = data?.candidates?.[0];
+    const parts = Array.isArray(candidate?.content?.parts) ? candidate.content.parts : [];
+    const textContent = parts.filter(part => typeof part.text === "string").map(part => part.text).join("");
+    const toolCalls = parts.filter(part => part.functionCall?.name).map((part, index) => ({
+      id: `gemini_call_${Date.now()}_${index}`,
+      type: "function",
+      function: { name: part.functionCall.name, arguments: JSON.stringify(part.functionCall.args || {}) }
+    }));
+    message = { role: "assistant", content: textContent, ...(toolCalls.length ? { tool_calls: toolCalls } : {}) };
+    if (!textContent && !toolCalls.length) {
+      const reason = candidate?.finishReason || data?.promptFeedback?.blockReason || "no candidate content";
+      throw new Error(`Gemini returned no text or tool call (${reason}). Check model access and API project status.`);
+    }
+  } else {
+    message = data?.choices?.[0]?.message;
+  }
   if (!message) {
     const error = new Error("AI provider returned an unexpected response. Check AI_BASE_URL and AI_MODEL.");
     error.status = 502;
