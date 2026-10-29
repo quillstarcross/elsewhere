@@ -17,17 +17,17 @@ This is a browser-control service, not a complete natural-language AI agent by i
 - Lightpanda is headless and has no visual login window or Browserless-style live browser URL. The service intentionally blocks password-field filling. For sites requiring interactive sign-in, use the site's official API/token or a separate browser with a visible login flow; do not paste passwords or cookies into this dashboard.
 - Lightpanda implements a subset of browser APIs. Complex sites that depend on Chrome-specific behavior may fail. Use official APIs for GitHub/Vercel operations whenever possible.
 - Sessions are in memory and expire after 15 minutes of inactivity. Free web services can sleep or restart, which clears sessions.
-- Public URL validation blocks localhost and common private IP ranges. This is defense in depth, not a substitute for careful access control.
+- Public URL validation blocks localhost and common private IP literals. This is defense in depth, not a substitute for careful access control.
 
 ## Deploy on Render
 
-1. Open Render and create a Blueprint using this repository. Render detects the root `render.yaml` and proposes `elsewhere-lightpanda-agent`.
+1. Open Render and create a Blueprint using this repository. Render detects the root `render.yaml` and proposes `elsewhere-browser-agent`.
 2. The Blueprint generates `AGENT_ACCESS_KEY`. Keep it private.
 3. Deploy and wait until `/health` reports `"browser":"ready"`.
 4. Open the service URL and enter the value of `AGENT_ACCESS_KEY` from the Render service environment.
 5. Start with a public page such as `https://example.com` to verify the browser.
 
-The build installs the open-source `@lightpanda/browser` package and its browser binary. No Browserless token, TinyFish wallet, or Lightpanda Cloud token is required.
+The build downloads the official open-source Lightpanda binary directly and checks that it runs. No Browserless token, TinyFish wallet, or Lightpanda Cloud token is required.
 
 ## API
 
@@ -66,7 +66,10 @@ From this directory:
 
 ```sh
 npm install
-npx @lightpanda/browser install
+mkdir -p bin
+curl -fsSL --retry 3 https://github.com/lightpanda-io/browser/releases/download/nightly/lightpanda-x86_64-linux -o bin/lightpanda
+chmod +x bin/lightpanda
+./bin/lightpanda version
 npm run check
 npm start
 ```
