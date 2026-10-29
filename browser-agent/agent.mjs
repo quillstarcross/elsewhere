@@ -57,7 +57,7 @@ function geminiContents(messages) {
       for (const call of message.tool_calls || []) {
         let args = {};
         try { args = JSON.parse(call.function?.arguments || "{}"); } catch {}
-        parts.push({ functionCall: { name: call.function.name, args, ...(call.geminiThoughtSignature ? { thoughtSignature: call.geminiThoughtSignature } : {}) } });
+        parts.push({ functionCall: { name: call.function.name, args }, ...(call.geminiThoughtSignature ? { thoughtSignature: call.geminiThoughtSignature } : {}) });
       }
       if (parts.length) contents.push({ role: "model", parts });
     } else if (message.role === "tool") {
