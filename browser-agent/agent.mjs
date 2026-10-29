@@ -34,7 +34,7 @@ async function callModel(messages, tools, { timeoutMs = 90000 } = {}) {
   const endpoint = base.endsWith("/chat/completions") ? base : base + "/chat/completions";
   // Gemini's OpenAI-compatible endpoint expects tools/tool_choice only when
   // tool definitions are present. The connection test intentionally sends no tools.
-  const payload = { model, messages, temperature: 0.2, max_tokens: 1400 };
+  // Gemini 3 defaults to high reasoning, which can delay even simple requests.\n  // Use low reasoning for faster agent turns while preserving compatibility with other OpenAI-style providers.\n  const isGemini = base.includes("generativelanguage.googleapis.com");\n  const payload = { model, messages, max_tokens: 1400, ...(isGemini ? { reasoning_effort: "low" } : { temperature: 0.2 }) };
   if (Array.isArray(tools) && tools.length > 0) {
     payload.tools = tools;
     payload.tool_choice = "auto";
