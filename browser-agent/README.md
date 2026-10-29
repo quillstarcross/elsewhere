@@ -8,7 +8,7 @@ A small, self-hosted headless browser automation service. This replaces the Brow
 - Inspect page title, visible text, and a bounded list of links.
 - Run explicit navigation, click, fill, dropdown-select, and inspect actions.
 - Execute short, ordered workflows through `POST /api/session/:id/workflow`.
-- Protect the API with a server-side `AGENT_ACCESS_KEY`.
+- Open the dashboard and use the API without manually entering an access key; public endpoints are rate-limited.
 
 The service includes an optional natural-language agent at `POST /api/agent/run`. It calls a configurable OpenAI-compatible chat-completions endpoint, gives the model browser tools plus Tavily web search, runs bounded actions, and returns a report with an action log. Gemini is supported through Google's OpenAI-compatible endpoint. The model API key stays server-side. Lightpanda itself is a browser, not an AI model.
 
@@ -17,24 +17,23 @@ The service includes an optional natural-language agent at `POST /api/agent/run`
 - Lightpanda is headless and has no visual login window or Browserless-style live browser URL. The service intentionally blocks password-field filling. For sites requiring interactive sign-in, use the site's official API/token or a separate browser with a visible login flow; do not paste passwords or cookies into this dashboard.
 - Lightpanda implements a subset of browser APIs. Complex sites that depend on Chrome-specific behavior may fail. Use official APIs for GitHub/Vercel operations whenever possible.
 - Sessions are in memory and expire after 15 minutes of inactivity. Free web services can sleep or restart, which clears sessions.
-- Public URL validation blocks localhost and common private IP literals. This is defense in depth, not a substitute for careful access control.
+- Public URL validation blocks localhost and common private IP literals. Public access is rate-limited, but the service is not intended for sensitive/private workflows; AI endpoints can consume configured provider quotas.
 
 ## Deploy on Render
 
 1. Open Render and create a Blueprint using this repository. Render detects the root `render.yaml` and proposes `elsewhere-browser-agent`.
-2. The Blueprint generates `AGENT_ACCESS_KEY`. Keep it private.
-3. Deploy and wait until `/health` reports `"browser":"ready"`.
-4. Open the service URL and enter the value of `AGENT_ACCESS_KEY` from the Render service environment.
-5. Start with a public page such as `https://example.com` to verify the browser.
+2. Deploy and wait until `/health` reports `"browser":"ready"`.
+3. Open the service URL. No manual access key is required.
+4. Start with a public page such as `https://example.com` to verify the browser.
 
 The build downloads the official open-source Lightpanda binary directly and checks that it runs. No Browserless token, TinyFish wallet, or Lightpanda Cloud token is required.
 
 ## API
 
-All `/api/*` endpoints require the `x-agent-key` header.
+All `/api/*` endpoints are accessible without an access-key header and protected by per-IP request limits.
 
 - `GET /health`: public health status.
-- `GET /api/status`: protected capabilities, browser status, and whether AI/search configuration is present.
+- `GET /api/status`: capabilities, browser status, and whether AI/search configuration is present.
 - `POST /api/agent/test`: safely tests the configured Gemini model and Tavily search separately; returns connection status without exposing API keys.
 - `POST /api/session` with `{"url":"https://example.com"}`: create a headless session.
 - `GET /api/session/:id`: inspect title, URL, text, and links.
@@ -72,11 +71,10 @@ In Render, open the `elsewhere-browser-agent` service and add these environment 
 
 Example base URL shapes include `https://api.openai.com/v1` or a provider's documented OpenAI-compatible endpoint. Choose a model/provider with a free tier if available in your region, but check its current limits and billing terms; free access and quotas can change. Do not put model keys in the dashboard or in GitHub files. After saving environment variables, redeploy/restart the service.
 
-Then open the dashboard, enter your private access key, and select **Test Gemini + Tavily**. This sends a small test request to each provider and reports whether both connections work. After that, start a session on a public page, enter a goal in **03 / AI agent**, and select **Run AI agent**. Or call the endpoint directly:
+Then open the dashboard and select **Test Gemini + Tavily**. This sends a small test request to each provider and reports whether both connections work. After that, start a session on a public page, enter a goal in **03 / AI agent**, and select **Run AI agent**. Or call the endpoint directly:
 
 ```http
 POST /api/agent/run
-x-agent-key: YOUR_AGENT_ACCESS_KEY
 content-type: application/json
 
 {
@@ -101,11 +99,9 @@ npm run check
 npm start
 ```
 
-Set `AGENT_ACCESS_KEY` to a long random value before using the protected API.
-
 ## Security
 
 - Never commit API tokens, passwords, cookies, or browser state.
-- Do not expose `AGENT_ACCESS_KEY` in frontend code, logs, or public documentation.
+- Public access means anyone who discovers the service can call its endpoints. Per-IP limits reduce abuse but are not a substitute for authentication for sensitive or high-cost deployments.
 - Do not use this service to bypass site authentication, CAPTCHAs, or access controls.
 - For account and deployment operations, prefer official APIs and require explicit authorization.
