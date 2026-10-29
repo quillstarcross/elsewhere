@@ -34,7 +34,8 @@ The build downloads the official open-source Lightpanda binary directly and chec
 All `/api/*` endpoints require the `x-agent-key` header.
 
 - `GET /health`: public health status.
-- `GET /api/status`: protected capabilities, browser status, and whether AI configuration is present.
+- `GET /api/status`: protected capabilities, browser status, and whether AI/search configuration is present.
+- `POST /api/agent/test`: safely tests the configured Gemini model and Tavily search separately; returns connection status without exposing API keys.
 - `POST /api/session` with `{"url":"https://example.com"}`: create a headless session.
 - `GET /api/session/:id`: inspect title, URL, text, and links.
 - `POST /api/session/:id/action`: run one action.
@@ -71,7 +72,7 @@ In Render, open the `elsewhere-browser-agent` service and add these environment 
 
 Example base URL shapes include `https://api.openai.com/v1` or a provider's documented OpenAI-compatible endpoint. Choose a model/provider with a free tier if available in your region, but check its current limits and billing terms; free access and quotas can change. Do not put model keys in the dashboard or in GitHub files. After saving environment variables, redeploy/restart the service.
 
-Then open the dashboard, start a session on a public page, enter a goal in **03 / AI agent**, and select **Run AI agent**. Or call the endpoint directly:
+Then open the dashboard, enter your private access key, and select **Test Gemini + Tavily**. This sends a small test request to each provider and reports whether both connections work. After that, start a session on a public page, enter a goal in **03 / AI agent**, and select **Run AI agent**. Or call the endpoint directly:
 
 ```http
 POST /api/agent/run
