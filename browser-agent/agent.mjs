@@ -24,7 +24,7 @@ function toolDefinitions() {
   ];
 }
 
-async function callModel(messages, tools) {
+async function callModel(messages, tools, { timeoutMs = 90000 } = {}) {
   const { base, key, model } = modelConfig();
   if (!base || !key || !model) {
     const error = new Error("AI agent is not configured. Set AI_BASE_URL, AI_API_KEY, and AI_MODEL in the service environment.");
@@ -43,7 +43,7 @@ async function callModel(messages, tools) {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
     body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(45000)
+    signal: AbortSignal.timeout(timeoutMs)
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -100,7 +100,7 @@ export function createAgentRouter({ authorized, getSession, applyAction }) {
       const message = await callModel([
         { role: "system", content: "You are checking connectivity. Reply with exactly: GEMINI_OK" },
         { role: "user", content: "Reply with the required connectivity confirmation." }
-      ], []);
+      ], [], { timeoutMs: 90000 });
       checks.gemini = {
         ok: Boolean(String(message.content || "").trim()),
         message: String(message.content || "").trim().slice(0, 120)
