@@ -11,7 +11,6 @@ import { createAgentRouter } from "./agent.mjs";
 const app = express();
 const here = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 3000);
-const accessKey = process.env.AGENT_ACCESS_KEY;
 const binaryPath = process.env.LIGHTPANDA_BIN || path.join(here, "bin", "lightpanda");
 const sessions = new Map();
 const MAX_SESSIONS = 3;
@@ -22,17 +21,36 @@ let browserProcess = null;
 let browserError = null;
 
 app.disable("x-powered-by");
+app.set("trust proxy", 1);
 app.use(express.json({ limit: "32kb" }));
+
+// Public access removes the manual key prompt. Apply lightweight per-IP limits
+// so an exposed endpoint cannot be hammered indefinitely.
+const requestBuckets = new Map();
+function rateLimit({ windowMs = 15 * 60 * 1000, max = 120 } = {}) {
+  return (req, res, next) => {
+    const key = req.ip || req.socket.remoteAddress || "unknown";
+    const now = Date.now();
+    let bucket = requestBuckets.get(key);
+    if (!bucket || now >= bucket.resetAt) {
+      bucket = { count: 0, resetAt: now + windowMs };
+      requestBuckets.set(key, bucket);
+    }
+    bucket.count += 1;
+    res.set("RateLimit-Limit", String(max));
+    res.set("RateLimit-Remaining", String(Math.max(0, max - bucket.count)));
+    if (bucket.count > max) {
+      res.set("Retry-After", String(Math.ceil((bucket.resetAt - now) / 1000)));
+      return res.status(429).json({ error: "Too many requests. Please wait a little and try again." });
+    }
+    next();
+  };
+}
+app.use("/api", rateLimit({ windowMs: 15 * 60 * 1000, max: 180 }));
 app.use(express.static(path.join(here, "public")));
 
-function authorized(req, res, next) {
-  if (!accessKey) return res.status(503).json({ error: "Service setup incomplete: AGENT_ACCESS_KEY is not configured." });
-  const supplied = req.get("x-agent-key") || "";
-  const a = Buffer.from(supplied);
-  const b = Buffer.from(accessKey);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
-    return res.status(401).json({ error: "Access key is incorrect." });
-  }
+// This service is intentionally usable without a manual access key.
+function authorized(_req, _res, next) {
   next();
 }
 
@@ -210,6 +228,9 @@ app.delete("/api/session/:id", authorized, async (req, res) => {
   res.json({ ok: true, message: "Session closed." });
 });
 
+// AI endpoints have stricter public rate limits to help protect API quotas.
+app.use("/api/agent/test", rateLimit({ windowMs: 15 * 60 * 1000, max: 6 }));
+app.use("/api/agent/run", rateLimit({ windowMs: 15 * 60 * 1000, max: 12 }));
 app.use("/api/agent", createAgentRouter({ authorized, getSession, applyAction }));
 
 const server = app.listen(port, "0.0.0.0", () => console.log(`ELSEWHERE Lightpanda Agent listening on ${port}`));
