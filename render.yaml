@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     rootDir: browser-agent
-    buildCommand: npm install && npx @lightpanda/browser install
+    buildCommand: npm install && mkdir -p bin && curl -fsSL --retry 3 https://github.com/lightpanda-io/browser/releases/download/nightly/lightpanda-x86_64-linux -o bin/lightpanda && chmod +x bin/lightpanda && ./bin/lightpanda version
     startCommand: npm start
     healthCheckPath: /health
     envVars:
