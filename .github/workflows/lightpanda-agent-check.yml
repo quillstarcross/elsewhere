@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/lightpanda-hybrid-agent
+      - feature/ai-agent-orchestrator
     paths:
       - "browser-agent/**"
       - "render.yaml"
