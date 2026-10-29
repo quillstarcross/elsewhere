@@ -34,7 +34,10 @@ async function callModel(messages, tools, { timeoutMs = 90000 } = {}) {
   const endpoint = base.endsWith("/chat/completions") ? base : base + "/chat/completions";
   // Gemini's OpenAI-compatible endpoint expects tools/tool_choice only when
   // tool definitions are present. The connection test intentionally sends no tools.
-  // Gemini 3 defaults to high reasoning, which can delay even simple requests.\n  // Use low reasoning for faster agent turns while preserving compatibility with other OpenAI-style providers.\n  const isGemini = base.includes("generativelanguage.googleapis.com");\n  const payload = { model, messages, max_tokens: 1400, ...(isGemini ? { reasoning_effort: "low" } : { temperature: 0.2 }) };
+  // Gemini 3 defaults to high reasoning, which can delay even simple requests.
+  // Use low reasoning for faster agent turns while preserving compatibility with other OpenAI-style providers.
+  const isGemini = base.includes("generativelanguage.googleapis.com");
+  const payload = { model, messages, max_tokens: 1400, ...(isGemini ? { reasoning_effort: "low" } : { temperature: 0.2 }) };
   if (Array.isArray(tools) && tools.length > 0) {
     payload.tools = tools;
     payload.tool_choice = "auto";
@@ -146,7 +149,8 @@ export function createAgentRouter({ authorized, getSession, applyAction }) {
           "Return a concise final report with what you did, evidence/results, and any next step requiring the user's confirmation."
         ].join(" ")
       },
-      { role: "user", content: `User goal: ${goal}\nCurrent page URL: ${session.page.url()}` }
+      { role: "user", content: `User goal: ${goal}
+Current page URL: ${session.page.url()}` }
     ];
     const toolLog = [];
     try {
