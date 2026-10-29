@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: elsewhere-lightpanda-agent
+    name: elsewhere-browser-agent
     runtime: node
     plan: free
     rootDir: browser-agent
