@@ -57,7 +57,7 @@ function geminiContents(messages) {
       for (const call of message.tool_calls || []) {
         let args = {};
         try { args = JSON.parse(call.function?.arguments || "{}"); } catch {}
-        parts.push({ functionCall: { name: call.function.name, args } });
+        parts.push({ functionCall: { name: call.function.name, args, ...(call.geminiThoughtSignature ? { thoughtSignature: call.geminiThoughtSignature } : {}) } });
       }
       if (parts.length) contents.push({ role: "model", parts });
     } else if (message.role === "tool") {
@@ -143,7 +143,8 @@ async function callModel(messages, tools, { timeoutMs = 90000 } = {}) {
     const toolCalls = parts.filter(part => part.functionCall?.name).map((part, index) => ({
       id: `gemini_call_${Date.now()}_${index}`,
       type: "function",
-      function: { name: part.functionCall.name, arguments: JSON.stringify(part.functionCall.args || {}) }
+      function: { name: part.functionCall.name, arguments: JSON.stringify(part.functionCall.args || {}) },
+      ...(part.thoughtSignature ? { geminiThoughtSignature: part.thoughtSignature } : {})
     }));
     message = { role: "assistant", content: textContent, ...(toolCalls.length ? { tool_calls: toolCalls } : {}) };
     if (!textContent && !toolCalls.length) {
