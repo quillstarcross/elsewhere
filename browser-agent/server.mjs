@@ -132,6 +132,7 @@ app.get("/api/status", authorized, (_req, res) => res.json({
   engine: "Lightpanda",
   capabilities: ["navigate", "inspect", "click", "fill", "select", "workflow", "natural-language AI agent"],
   aiConfigured: Boolean(process.env.AI_BASE_URL && process.env.AI_API_KEY && process.env.AI_MODEL),
+  webSearchConfigured: Boolean(process.env.TAVILY_API_KEY),
   limitations: ["headless only", "no visual login handoff", "partial browser API compatibility"]
 }));
 
