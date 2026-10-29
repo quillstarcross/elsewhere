@@ -84,6 +84,38 @@ function parseArgs(raw) {
 }
 
 export function createAgentRouter({ authorized, getSession, applyAction }) {
+  router.post("/test", authorized, async (_req, res) => {
+    const checks = {
+      gemini: { ok: false, message: "" },
+      tavily: { ok: false, message: "" }
+    };
+    try {
+      const message = await callModel([
+        { role: "system", content: "You are checking connectivity. Reply with exactly: GEMINI_OK" },
+        { role: "user", content: "Reply with the required connectivity confirmation." }
+      ], []);
+      checks.gemini = {
+        ok: Boolean(String(message.content || "").trim()),
+        message: String(message.content || "").trim().slice(0, 120)
+      };
+      if (!checks.gemini.ok) checks.gemini.message = "The model returned no text.";
+    } catch (error) {
+      checks.gemini.message = String(error?.message || "Gemini connection failed.").slice(0, 300);
+    }
+    try {
+      const result = await searchWeb("ELSEWHERE browser agent");
+      checks.tavily = {
+        ok: Array.isArray(result.results) && result.results.length > 0,
+        message: Array.isArray(result.results) && result.results.length
+          ? `Search succeeded; ${result.results.length} results returned.`
+          : "Search returned no results."
+      };
+    } catch (error) {
+      checks.tavily.message = String(error?.message || "Tavily connection failed.").slice(0, 300);
+    }
+    res.json({ ok: checks.gemini.ok && checks.tavily.ok, checks });
+  });
+
   router.post("/run", authorized, async (req, res) => {
     const goal = typeof req.body?.goal === "string" ? req.body.goal.trim() : "";
     const sessionId = typeof req.body?.sessionId === "string" ? req.body.sessionId : "";
